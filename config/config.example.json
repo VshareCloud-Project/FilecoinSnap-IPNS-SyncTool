@@ -1,0 +1,14 @@
+{
+    "debug": true,
+    "log_level": "INFO",
+    "log_file": ".log/client.log",
+    "log_error_file": ".log/client-error.log",
+    "log_file_size": 10485760,
+    "log_file_backup_count": 5,
+    "log_file_encoding": "utf-8",
+    "log_error_level": "ERROR",
+    "ipfs_import_mode": "api",
+    "ipfs_api_host": "/ip4/127.0.0.1/tcp/5001",
+    "snapshot_dowload_mode": "url",
+    "snapshot_url": ""
+}
