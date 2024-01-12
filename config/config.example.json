@@ -18,5 +18,5 @@
     "ipns_domain": "content.example.com",
     "ddns_cloudflare_email": "",
     "ddns_cloudflare_api_key": "",
-    "sleep_time": 60
+    "sleep_time": 7200
 }

@@ -100,7 +100,7 @@ def update_ipns_to_domain(config, mfs_cid):
     else:
         # Update DNS record for the subdomain with the IPFS hash
         dns_record_id = dns_records[0]['id']
-        cf.zones.dns_records.put(zone_id, dns_record_id, data={'type': 'TXT', 'name': ipns_domain, 'content': "dnslink=/ipns/" + mfs_cid, 'ttl': 120})
+        cf.zones.dns_records.put(zone_id, dns_record_id, data={'type': 'TXT', 'name': ipns_domain, 'content': "dnslink=/ipfs/" + mfs_cid, 'ttl': 120})
     logging.info(f"IPNS domain {ipns_domain} has been updated to point to {mfs_cid}")
 
 def main():
