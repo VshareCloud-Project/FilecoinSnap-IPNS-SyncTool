@@ -9,6 +9,7 @@
     "log_error_level": "ERROR",
     "ipfs_import_mode": "api",
     "ipfs_api_host": "/ip4/127.0.0.1/tcp/5001",
+    "ipfs_api_url": "http://127.0.0.1:5001/api/v0",
     "mfs_path_uuid": "35618d66-a04c-4b26-aa70-acb38ce29e6f",
     "snapshot_dowload_mode": "url",
     "snapshot_url": "",
@@ -16,5 +17,6 @@
     "ddns_mode": "cloudflare",
     "ipns_domain": "content.example.com",
     "ddns_cloudflare_email": "",
-    "ddns_cloudflare_api_key": ""
+    "ddns_cloudflare_api_key": "",
+    "sleep_time": 60
 }

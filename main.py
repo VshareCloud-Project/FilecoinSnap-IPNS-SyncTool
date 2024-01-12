@@ -1,28 +1,44 @@
 import os
+import time
 import configloader
 import requests
 import subprocess
 import logging
 from logging import handlers
 from CloudFlare import CloudFlare
-import tools.ipfs_mfs as ipfs_mfs_tools
+from tools.ipfs_mfs import IpfsMfsTools
+
 
 def download_file(config):
-    if config.snapshot_dowload_mode == "url":
+    if config.getkey("snapshot_dowload_mode") == "url":
         url = config.getkey("snapshot_url")  
         path = config.getkey("snapshot_file_folder")
         logging.info(f"Downloading {url} to {path}")
-
-        try:
-            subprocess.run(["aria2c", url, "-d", path], check=True)
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Failed to download {url}. Process returned non-zero exit status.")
-            logging.error(e)
-            return
-        except Exception as e:
-            logging.error(f"An error occurred while trying to download {url} to {path}")
-            logging.error(e)
-            return
+        files = os.listdir(path)
+        if len(files) == 0:
+            try:
+                subprocess.run(["aria2c", url, "-d", path], check=True)
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Failed to download {url}. Process returned non-zero exit status.")
+                logging.error(e)
+                return
+            except Exception as e:
+                logging.error(f"An error occurred while trying to download {url} to {path}")
+                logging.error(e)
+                return
+        else:
+            logging.error(f"Snapshot folder {path} is not empty. Clear the folder and try again.")
+            os.system(f'rm -rf {path}/*')
+            try:
+                subprocess.run(["aria2c", url, "-d", path], check=True)
+            except subprocess.CalledProcessError as e:
+                logging.error(f"Failed to download {url}. Process returned non-zero exit status.")
+                logging.error(e)
+                return
+            except Exception as e:
+                logging.error(f"An error occurred while trying to download {url} to {path}")
+                logging.error(e)
+                return
     else:
         #foo
         pass
@@ -37,10 +53,13 @@ def upload_file(config):
         Check if the mfs path exists. If it doesn't, create it.
         """
         files = os.listdir(path)
-        if len(files) == 1:
+        while len(files) == 1:
             file_path = os.path.join(path, files[0])
             file_cid = subprocess.run(["ipfs", "add", "-Q", "--api", config.getkey("ipfs_api_host"), file_path], check=True, stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
             return file_cid, str(files[0])
+        else:
+            logging.error(f"More than one file found in {path}. Clear the folder and try again.")
+            exit(1)
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to upload {path} to IPFS. Process returned non-zero exit status.")
         logging.error(e)
@@ -51,9 +70,9 @@ def upload_file(config):
         return
 
 def add_file_to_mfs(config, file_cid, filename):
-    ipfs_mfs = ipfs_mfs_tools()
-    mfs_path_uuid = config.getkey("mfs_path_uuid")
-    if ipfs_mfs.list_directory(mfs_path_uuid) == []:
+    ipfs_mfs = IpfsMfsTools(api_url=config.getkey("ipfs_api_url"))
+    mfs_path_uuid = "/" + config.getkey("mfs_path_uuid")
+    if ipfs_mfs.list_directory(mfs_path_uuid).get("Message") == "file does not exist":
         ipfs_mfs.create_directory(mfs_path_uuid)
         logging.info(f"Created {mfs_path_uuid} directory in IPFS")
     else:
@@ -61,6 +80,7 @@ def add_file_to_mfs(config, file_cid, filename):
         ipfs_mfs.add_file_to_directory(file_cid, mfs_path_uuid, filename)
         ipfs_mfs.add_file_to_directory(file_cid, mfs_path_uuid, "latest")
         logging.info(f"Added {filename} to {mfs_path_uuid} directory in IPFS , and latest file has been updated")
+        print(ipfs_mfs.get_cid(f"{mfs_path_uuid}"))
     return ipfs_mfs.get_cid(f"{mfs_path_uuid}")
 
 def update_ipns_to_domain(config, mfs_cid):
@@ -82,10 +102,6 @@ def update_ipns_to_domain(config, mfs_cid):
         dns_record_id = dns_records[0]['id']
         cf.zones.dns_records.put(zone_id, dns_record_id, data={'type': 'TXT', 'name': ipns_domain, 'content': "dnslink=/ipns/" + mfs_cid, 'ttl': 120})
     logging.info(f"IPNS domain {ipns_domain} has been updated to point to {mfs_cid}")
-    
-
-    
-
 
 def main():
     c = configloader.config()
@@ -108,4 +124,12 @@ def main():
     download_file(c)
     file_cid, filename = upload_file(c)
     mfs_cid = add_file_to_mfs(c, file_cid, filename)
+    update_ipns_to_domain(c, mfs_cid)
+    logging.info("Process finished")
+    #clear the snapshot cache folder
+    os.system(f'rm -rf {c.getkey("snapshot_file_folder")}/*')
+    time.sleep(c.getkey("sleep_time"))
 
+if __name__ == "__main__":
+    while True:
+        main()

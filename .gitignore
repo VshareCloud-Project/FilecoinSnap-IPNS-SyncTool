@@ -3,5 +3,7 @@ config/config.json
 applications/*
 !applications/.gitkeep
 .log/*.log
+snapshot/*
 !.log/.gitkeep
 .·venv
+*.log
